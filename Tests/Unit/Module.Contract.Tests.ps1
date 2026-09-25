@@ -42,7 +42,7 @@ Describe 'CaOutcome module contract' -Tag 'Unit', 'Contract' {
         )
     }
 
-    It 'gives every public function comment-based help with worked examples' {
+    It 'gives every public function help with worked examples' {
         foreach ($command in (Get-Command -Module CaOutcome -CommandType Function)) {
             $help = Get-Help $command.Name -Full
             $help.Synopsis | Should-NotBeWhiteSpaceString
@@ -59,7 +59,7 @@ Describe 'CaOutcome module contract' -Tag 'Unit', 'Contract' {
             Should-BeNull
     }
 
-    It 'gives the public function comment-based help with worked examples' {
+    It 'serves ConvertTo-CaOutcome its compiled help' {
         $help = Get-Help ConvertTo-CaOutcome -Full
         $help.Synopsis | Should-NotBeWhiteSpaceString
         @($help.Examples.Example).Count | Should-BeGreaterThanOrEqual 3

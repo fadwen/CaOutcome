@@ -1,0 +1,135 @@
+TOPIC
+    about_CaOutcome
+
+SHORT DESCRIPTION
+    Folds a Conditional Access What If response into the outcome a sign-in
+    actually meets, and into the outcome it would meet if the tenant's
+    report-only policies were promoted.
+
+LONG DESCRIPTION
+    The Conditional Access What If API answers, policy by policy, whether each
+    policy matches a simulated sign-in. A tenant with thirteen policies returns
+    thirteen verdicts. What an administrator wants is three answers:
+
+        does the sign-in succeed
+        what does the user have to do to make it succeed
+        what changes if the policy being piloted goes live
+
+    All three come out of a single response, because each policy in it carries
+    its state alongside its verdict. CaOutcome folds that response twice:
+
+        Current      policies in state 'enabled' - what the tenant enforces now
+        Projected    'enabled' plus 'enabledForReportingButNotEnforced' - what
+                     it would enforce if every report-only policy were promoted
+
+    and reports the difference between the two as a Delta.
+
+    There is no way to ask Graph to evaluate a hypothetical policy. The request
+    takes a sign-in to simulate, not a policy set. Staging a candidate policy as
+    report-only and reading both worlds out of one response simulates the
+    promotion without enforcing anything, and costs no extra API calls.
+
+THE COMMANDS
+        ConvertTo-CaOutcome        One response -> the outcome in both worlds
+        Expand-CaScenario          Personas x resources x conditions -> sign-ins
+        Invoke-CaScenarioMatrix    Evaluates each sign-in, with retry, and folds it
+        Export-CaBaseline          Records a run as deterministic, committable JSON
+        Compare-CaBaseline         Diffs a fresh run against that baseline
+
+    ConvertTo-CaOutcome needs no connection: it transforms a response someone
+    else fetched, including the collection Maester's
+    Test-MtConditionalAccessWhatIf returns. Only Invoke-CaScenarioMatrix sends
+    requests, and only through its default request handler.
+
+HOW THE FOLD WORKS
+    Every matching policy is evaluated and the aggregate is the most restrictive
+    combination, as Entra documents it: one applying block ends it, otherwise
+    every applying policy's grant clause must be satisfied.
+
+    OR clauses are not flattened. "MFA or a compliant device" and "MFA and a
+    compliant device" are different policies, so multi-option clauses are kept
+    whole in OptionalChoices rather than merged into RequiredControls.
+
+    Authentication strengths count as requirements. A modern MFA policy has an
+    empty builtInControls array and its whole requirement in
+    authenticationStrength.
+
+    Session control conflicts are always reported. Most-restrictive is applied
+    where restrictiveness has a defensible ordering - sign-in frequency and
+    persistent browser. Anything else is returned with Resolved set to $false
+    rather than guessed at.
+
+SATISFIABILITY
+    Without -SignInCondition the module reports what a sign-in is required to
+    do. With it, requirements the simulated sign-in demonstrably cannot meet are
+    reported as UnsatisfiableRequirements, and an outcome that is granted
+    subject to something impossible has IsEffectivelyBlocked set.
+
+    Every such finding rests on a documented Microsoft constraint - a legacy
+    client passes no device state, device code flow cannot carry device
+    compliance, an approved client app is only supported on iOS and Android.
+    Anything the request cannot settle, such as whether a user has registered a
+    method, is left unknown. A missed lockout is a finding not made; an invented
+    one teaches the reader to ignore the field.
+
+BASELINES
+    Configuration comparison watches the policy document. A Conditional Access
+    outcome also depends on group membership, role assignment, named locations
+    and device state, none of which changes the document. Someone joins a group
+    and a policy that already existed now locks them out.
+
+    Export-CaBaseline records what the tenant does for each persona, not how it
+    is configured, and Compare-CaBaseline reports any scenario whose outcome has
+    moved - in either world. A baseline carries no timestamp, so a run that
+    changed nothing produces no diff.
+
+    A scenario that failed to evaluate is never recorded as absent, because the
+    next comparison would report it as removed: a change invented by a transient
+    HTTP error. Export-CaBaseline refuses such a run unless -Force is given, and
+    Compare-CaBaseline reports a scenario missing from a run as Missing, not
+    removed.
+
+    A baseline names users, groups, applications and policies from the tenant
+    it was taken in. Commit it alongside that tenant's tests, not publicly.
+
+PERMISSIONS
+    Invoke-CaScenarioMatrix's default request handler calls
+    Invoke-MgGraphRequest, from Microsoft.Graph.Authentication, and needs a
+    connection with Policy.Read.ConditionalAccess. The module does not declare
+    the Graph SDK as a dependency; supply -RequestHandler to use any other
+    transport, or to replay recorded responses.
+
+    The What If endpoint is in the Microsoft Graph beta, and its response shape
+    may change.
+
+EXAMPLES
+    Fold one response:
+
+        $response = Invoke-MgGraphRequest -Method POST -OutputType Json `
+            -Uri 'https://graph.microsoft.com/beta/identity/conditionalAccess/evaluate' `
+            -Body ($body | ConvertTo-Json -Depth 10)
+        ConvertTo-CaOutcome -WhatIfResult $response -SignInCondition $body.signInConditions
+
+    Find who a promotion would lock out:
+
+        Expand-CaScenario -Matrix (Import-PowerShellDataFile .\ca-matrix.psd1) |
+            Invoke-CaScenarioMatrix -DelayMillisecond 100 |
+            Where-Object { $_.Delta.BecomesEffectivelyBlocked }
+
+    Record a baseline, and later compare against it:
+
+        $outcomes | Export-CaBaseline -Path .\ca-baseline.json
+        $outcomes | Compare-CaBaseline -Path .\ca-baseline.json |
+            Where-Object HasChange
+
+    The Examples folder in the installed module holds a sample matrix and a
+    Maester custom test template.
+
+SEE ALSO
+    ConvertTo-CaOutcome
+    Expand-CaScenario
+    Invoke-CaScenarioMatrix
+    Export-CaBaseline
+    Compare-CaBaseline
+    https://github.com/fadwen/CaOutcome
+    https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-evaluate?view=graph-rest-beta

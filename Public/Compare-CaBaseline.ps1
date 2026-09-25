@@ -1,102 +1,12 @@
 function Compare-CaBaseline {
     <#
+    .EXTERNALHELP CaOutcome-Help.xml
     .SYNOPSIS
         Compares a fresh set of outcomes against a recorded baseline and reports what moved
-
-    .DESCRIPTION
-        Core Functionality:
-        Matches fresh outcomes to a stored baseline by scenario name and diffs each pair, in
-        both worlds, using the same comparison that produces a promotion diff. Scenarios present
-        on only one side are reported as added or missing.
-
-        Business Value:
-        This is the assertion a scheduled run is for. Everything else in this module answers
-        "what happens"; this answers "what changed since it was approved", which is the question
-        that belongs in a nightly job rather than in somebody's head.
-
-        It sees a class of change that policy comparison cannot. A group membership change, a
-        role assignment, an edit to a named location, a device falling out of compliance - each
-        moves who a policy hits while the policy document sits untouched. Microsoft365DSC finds
-        nothing, because nothing it watches drifted. The outcome for a persona nonetheless
-        changed, and that shows up here.
-
-        Both worlds are compared, and the distinction matters. Current drift means what the
-        tenant enforces has moved. Projected drift means the pilot's blast radius has moved -
-        which happens without anyone touching the pilot, because the population it would hit is
-        not fixed.
-
-        Use Cases:
-        - A nightly run that fails when any persona's experience changes
-        - Proving that a migration or a group restructure changed nothing users can feel
-        - Reviewing a diff before re-approving a baseline
-
-        Dependencies:
-        None.
-
-        Side Effects:
-        None. Nothing is written; re-approving a baseline is Export-CaBaseline's job.
-
-        Important:
-        A scenario in the baseline with no fresh outcome is reported as Missing, not as removed.
-        The usual cause is a failed evaluation rather than a deliberate change to the matrix, and
-        those two need to look different or a transient HTTP error reads as a policy change.
-
-    .PARAMETER Outcome
-        [System.Object[]] (Mandatory, Accepts Pipeline Input)
-
-        The fresh outcomes, from Invoke-CaScenarioMatrix.
-
-    .PARAMETER Baseline
-        [System.Object] (Mandatory in the Object set, No Pipeline Support)
-
-        The baseline object from Export-CaBaseline.
-
-    .PARAMETER Path
-        [System.String] (Mandatory in the Path set, No Pipeline Support)
-
-        A baseline JSON file to read.
-
-    .OUTPUTS
-        PSCustomObject per scenario, carrying Status, HasChange, CurrentDelta, ProjectedDelta
-        and Summary. Status is Unchanged, Changed, Added, Missing or Failed.
-
-    .EXAMPLE
-        PS> Expand-CaScenario -Matrix $matrix | Invoke-CaScenarioMatrix |
-                Compare-CaBaseline -Path .\ca-baseline.json |
-                Where-Object HasChange
-
-        DESCRIPTION: Runs the matrix and reports only the scenarios that have moved
-        OUTPUT: One row per changed scenario
-        DURATION: The matrix run, plus milliseconds
-        USE CASE: The nightly job
-
-    .EXAMPLE
-        PS> $drift = $outcomes | Compare-CaBaseline -Path .\ca-baseline.json
-        PS> $drift | Where-Object { $_.Status -eq 'Missing' }
-
-        DESCRIPTION: Finds scenarios the run did not produce, usually a failed evaluation
-        OUTPUT: One row per scenario in the baseline with no fresh outcome
-        DURATION: Instant
-        USE CASE: Telling a broken run apart from a real change before acting on the diff
-
-    .EXAMPLE
-        PS> $outcomes | Compare-CaBaseline -Path .\ca-baseline.json |
-                Where-Object { $_.CurrentDelta.BecomesEffectivelyBlocked } |
-                Select-Object Scenario, Summary
-
-        DESCRIPTION: The severe case - a persona that used to get in and now does not
-        OUTPUT: One row per newly locked out persona
-        DURATION: Instant
-        USE CASE: The alert worth waking somebody for, as opposed to the report worth reading
-
-    .NOTES
-        Author: Jeffrey Stuhr
-        Version: 0.3.0
-        Last Updated: 2026-08-17
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Object')]
-    [OutputType([PSCustomObject])]
+    [OutputType('CaOutcome.Drift')]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNull()]

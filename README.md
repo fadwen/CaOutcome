@@ -1,8 +1,11 @@
 # CaOutcome
 
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/CaOutcome?style=flat-square&logo=powershell&label=Gallery)](https://www.powershellgallery.com/packages/CaOutcome)
+[![Quality Gates](https://img.shields.io/github/actions/workflow/status/fadwen/CaOutcome/quality-gates.yml?branch=main&style=flat-square&label=quality%20gates)](https://github.com/fadwen/CaOutcome/actions/workflows/quality-gates.yml)
 [![PowerShell 5.1](https://img.shields.io/badge/PowerShell-5.1+-blue?style=flat-square&logo=powershell)](https://github.com/PowerShell/PowerShell)
 [![Pester](https://img.shields.io/badge/Tested_with-Pester_6-green?style=flat-square)](https://pester.dev)
 [![Graph beta](https://img.shields.io/badge/MS_Graph-beta-orange?style=flat-square&logo=microsoft)](https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-evaluate?view=graph-rest-beta)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](./LICENSE)
 
 Folds a Conditional Access What If response into the outcome a sign-in actually
 meets, diffs what the tenant enforces today against what it would enforce if the
@@ -40,12 +43,32 @@ the promotion without enforcing anything, and costs no extra API calls.
 
 ## Install
 
-Nothing to install. The module has no `RequiredModules` and needs no Graph
-connection — it transforms a response someone else fetched.
+From the [PowerShell Gallery](https://www.powershellgallery.com/packages/CaOutcome):
 
 ```powershell
-Import-Module .\CaOutcome.psd1
+Install-PSResource -Name CaOutcome
 ```
+
+On Windows PowerShell 5.1 without PSResourceGet:
+
+```powershell
+Install-Module -Name CaOutcome -Scope CurrentUser
+```
+
+The module has no `RequiredModules`. Folding a response needs no Graph connection
+at all - it transforms a response someone else fetched. Only
+`Invoke-CaScenarioMatrix`'s default request handler calls Graph, through
+`Invoke-MgGraphRequest` from `Microsoft.Graph.Authentication`, with
+`Policy.Read.ConditionalAccess`:
+
+```powershell
+Install-PSResource -Name Microsoft.Graph.Authentication
+Connect-MgGraph -Scopes Policy.Read.ConditionalAccess
+```
+
+Every command has full help - `Get-Help ConvertTo-CaOutcome -Full` - and
+`Get-Help about_CaOutcome` covers the concepts. The same help is readable online
+under [`docs/CaOutcome`](./docs/CaOutcome/CaOutcome.md).
 
 ## Usage
 
@@ -293,9 +316,14 @@ glass account survives both worlds, and — the one that stops the others passin
 vacuously — that a report-only policy applied to at least one persona in the
 first place.
 
-The `.template` extension keeps this repository's CI from running it: the gate
-executes every `*.Tests.ps1` with `Should.DisableV5` set, and these assertions
-use the Pester 5 form because that is what Maester runs.
+The `.template` extension keeps this repository's own test run from picking it
+up: its assertions use the Pester 5 form, because that is what Maester runs, and
+it needs a connected tenant. Installed from the Gallery, the template is in the
+module's `Examples` folder:
+
+```powershell
+Join-Path (Get-Module CaOutcome -ListAvailable)[0].ModuleBase 'Examples'
+```
 
 The `Mt` prefix is Maester's, so these cmdlets deliberately do not use it.
 
@@ -305,11 +333,16 @@ The `Mt` prefix is Maester's, so these cmdlets deliberately do not use it.
 Invoke-Pester -Path .\Tests
 ```
 
-210 tests at 98.7% coverage. 204 of them need no tenant and run anywhere; the six
-under `Tests/Integration` exercise the one path a fixture cannot — the default
-request handler that calls `Invoke-MgGraphRequest` — and skip themselves unless
-the session is connected to Graph with a Conditional Access read scope. Without a
-connection the suite reports 204 passed, 6 skipped, 98.65% covered.
+210 tests. 204 of them need no tenant and run anywhere; the six under
+`Tests/Integration` exercise the one path a fixture cannot — the default request
+handler that calls `Invoke-MgGraphRequest` — and skip themselves unless the
+session is connected to Graph with a Conditional Access read scope. Without a
+connection the suite reports 204 passed, 6 skipped.
+
+CI runs the suite shuffled on PowerShell 7 (Windows and Linux) and on Windows
+PowerShell 5.1, gates coverage of `Public/` and `Private/` at 80%, runs
+PSScriptAnalyzer, and checks that the compiled help is current and is served on a
+case-sensitive filesystem. See [Contributing](#contributing) for the build.
 
 The fixtures under `Tests/Fixtures` are genuine
 What If responses from a tenant carrying nine enabled and four report-only
@@ -342,14 +375,33 @@ browser on the same sign-in.
   personas worth checking; a population left out of the matrix is a population
   no assertion covers, and the run still reports green.
 
+## Contributing
+
+Command help is written in PlatyPS Markdown under [`docs/CaOutcome`](./docs/CaOutcome)
+and compiled to `en-US/CaOutcome-Help.xml`, which is what `Get-Help` reads. After
+changing a command's signature or its help:
+
+```powershell
+Import-Module ./CaOutcome.psd1 -Force
+Measure-PlatyPSMarkdown -Path ./docs/CaOutcome/*.md |
+    Where-Object Filetype -match 'CommandHelp' |
+    Update-MarkdownCommandHelp -Path { $_.FilePath }   # only when a signature changed
+./Build/Build-Help.ps1                                  # validate and rebuild the MAML
+```
+
+and commit the Markdown and the rebuilt XML together — CI fails when they
+disagree. [CLAUDE.md](./CLAUDE.md) lists the invariants that are easy to break by
+accident.
+
+Releases are tag-driven: bump `ModuleVersion`, update
+[CHANGELOG.md](./CHANGELOG.md), then `git tag v<version>` and push the tag.
+
 ## Version
 
-- **0.5.1** — an unresolved session conflict now picks a deterministic winner, so
-  a baseline stays stable across runs
-- **0.5.0** — authentication strength combinations carried through the fold,
-  so a silently edited custom strength is caught as drift
-- **0.4.0** — satisfiability widened to legacy auth, device code flow and
-  platform limits, each finding carrying its reason
-- **0.3.0** — scenario matrix runner and outcome baselining
-- **0.2.0** — matrix expansion and the request-handler seam
-- **0.1.0** — effective control folding, promotion diff, satisfiability
+See [CHANGELOG.md](./CHANGELOG.md). Up to 0.5.1 the module lived in the
+[TechbyJeff](https://github.com/fadwen/TechbyJeff) scripts collection; it has been
+developed and released from this repository since 0.6.0.
+
+## License
+
+[MIT](./LICENSE)

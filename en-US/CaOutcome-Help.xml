@@ -1,0 +1,1305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<helpItems xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" schema="maml" xmlns="http://msh">
+  <command:command>
+    <command:details>
+      <command:name>Compare-CaBaseline</command:name>
+      <maml:description>
+        <maml:para>Compares a fresh set of outcomes against a recorded baseline and reports what moved</maml:para>
+      </maml:description>
+      <command:verb>Compare</command:verb>
+      <command:noun>CaBaseline</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Core Functionality:
+Matches fresh outcomes to a stored baseline by scenario name and diffs each pair, in both
+worlds, using the same comparison that produces a promotion diff. Scenarios present on only one
+side are reported as added or missing.
+
+Business Value:
+This is the assertion a scheduled run is for. Everything else in this module answers "what
+happens"; this answers "what changed since it was approved", which is the question that belongs
+in a nightly job rather than in somebody's head.
+
+It sees a class of change that policy comparison cannot. A group membership change, a role
+assignment, an edit to a named location, a device falling out of compliance - each moves who a
+policy hits while the policy document sits untouched. Microsoft365DSC finds nothing, because
+nothing it watches drifted. The outcome for a persona nonetheless changed, and that shows up
+here.
+
+Both worlds are compared, and the distinction matters. Current drift means what the tenant
+enforces has moved. Projected drift means the pilot's blast radius has moved - which happens
+without anyone touching the pilot, because the population it would hit is not fixed.
+
+Use Cases:
+- A nightly run that fails when any persona's experience changes
+- Proving that a migration or a group restructure changed nothing users can feel
+- Reviewing a diff before re-approving a baseline
+
+Dependencies:
+None.
+
+Side Effects:
+None. Nothing is written; re-approving a baseline is Export-CaBaseline's job.
+
+Important:
+A scenario in the baseline with no fresh outcome is reported as Missing, not as removed. The
+usual cause is a failed evaluation rather than a deliberate change to the matrix, and those two
+need to look different or a transient HTTP error reads as a policy change.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Compare-CaBaseline</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Outcome</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Baseline</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Compare-CaBaseline</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Outcome</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Baseline</maml:name>
+        <maml:description>
+          <maml:para>[System.Object] (Mandatory in the Object set, No Pipeline Support)</maml:para>
+          <maml:para>The baseline object from Export-CaBaseline.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="Named" aliases="none">
+        <maml:name>Outcome</maml:name>
+        <maml:description>
+          <maml:para>[System.Object[]] (Mandatory, Accepts Pipeline Input)</maml:para>
+          <maml:para>The fresh outcomes, from Invoke-CaScenarioMatrix.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>[System.String] (Mandatory in the Path set, No Pipeline Support)</maml:para>
+          <maml:para>A baseline JSON file to read.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Outcomes, bound to **-Outcome** from the pipeline - normally a fresh run of
+**Invoke-CaScenarioMatrix** over the same matrix the baseline was taken from.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>CaOutcome.Drift</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One object per scenario in either the run or the baseline. `Status` is `Unchanged`, `Changed`,
+`Added` (in the run only), `Missing` (in the baseline only - usually a failed evaluation rather
+than a removed scenario) or `Failed`. `HasChange` is the property to gate on. `CurrentDelta`
+and `ProjectedDelta` hold the change in what is enforced now and in what would be enforced
+after promotion, and `Summary` states both in one line.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr Blog: https://www.techbyjeff.net LinkedIn:
+https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+Both worlds are compared, not just the enforced one, so that a change to a report-only policy
+under pilot is caught before it is promoted.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1: Runs the matrix and reports only the scenarios that have moved ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix $matrix | Invoke-CaScenarioMatrix |
+    Compare-CaBaseline -Path .\ca-baseline.json |
+    Where-Object HasChange
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per changed scenario</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: The matrix run, plus milliseconds</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The nightly job</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2: Finds scenarios the run did not produce, usually a failed evaluation ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$drift = $outcomes | Compare-CaBaseline -Path .\ca-baseline.json
+$drift | Where-Object { $_.Status -eq 'Missing' }
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per scenario in the baseline with no fresh outcome</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Telling a broken run apart from a real change before acting on the diff</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3: The severe case - a persona that used to get in and now does not ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$outcomes | Compare-CaBaseline -Path .\ca-baseline.json |
+    Where-Object { $_.CurrentDelta.BecomesEffectivelyBlocked } |
+    Select-Object Scenario, Summary
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per newly locked out persona</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The alert worth waking somebody for, as opposed to the report worth reading</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/fadwen/CaOutcome/blob/main/docs/CaOutcome/Compare-CaBaseline.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Export-CaBaseline</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Invoke-CaScenarioMatrix</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>ConvertTo-CaOutcome</command:name>
+      <maml:description>
+        <maml:para>Turns a Conditional Access What If response into the effective outcome of the sign-in, and into
+the outcome that would follow from promoting the tenant's report-only policies</maml:para>
+      </maml:description>
+      <command:verb>ConvertTo</command:verb>
+      <command:noun>CaOutcome</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Core Functionality:
+Takes the whatIfAnalysisResult collection Graph returns from POST
+/beta/identity/conditionalAccess/evaluate and folds it twice. Current is the outcome the tenant
+enforces today, from the policies whose state is enabled. Projected is the outcome it would
+enforce if every report-only policy were switched on. Delta is the difference between them.
+
+Business Value:
+The What If API answers a question nobody asks. It reports, policy by policy, whether each one
+matches - so a tenant with thirteen policies returns thirteen verdicts, and working out what
+the user actually experiences is left to the reader. What an administrator wants to know is
+whether the sign-in succeeds, what the user has to do to make it succeed, and what changes if
+the policy being piloted goes live. All three come out of one response, because that response
+carries each policy's state alongside its verdict: filter to enabled and you have today, add
+the report-only ones and you have the promotion.
+
+That second fold is the reason this exists. There is no way to ask Graph to evaluate a
+hypothetical policy - the request body takes a sign-in to simulate, not a policy set, so the
+evaluation is always against what is really in the tenant. Staging a candidate as report-only
+and reading both worlds out of one response is the way to simulate a promotion without
+enforcing anything, and it costs no extra API calls.
+
+Use Cases:
+- Checking what a report-only policy will do before promoting it, per persona
+- Asserting in Maester that a given sign-in is blocked, or requires a given control
+- Storing an outcome as a baseline and failing a later run when a cell flips, which catches
+  group membership changes that leave the policy JSON untouched
+
+Dependencies:
+None. This transforms a response somebody else fetched, so it needs no Graph module and no
+connection. Feed it Maester's Test-MtConditionalAccessWhatIf -AllResults, an
+Invoke-MgGraphRequest result, or a saved file.
+
+Side Effects:
+None. Nothing is fetched and nothing is changed.
+
+Important:
+The response must include every policy, not just the applying ones. Graph's appliedPoliciesOnly
+defaults to returning all of them, and Maester exposes the same thing as -AllResults. Without
+the non-applying policies the fold still works, but a report-only policy that does not apply is
+indistinguishable from one that was never returned, and the projection quietly loses its
+meaning.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>ConvertTo-CaOutcome</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>WhatIfResult</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>ScenarioName</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+          <maml:name>SignInCondition</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="3" aliases="none">
+          <maml:name>BaselineState</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="4" aliases="none">
+          <maml:name>CandidateState</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="3" aliases="none">
+        <maml:name>BaselineState</maml:name>
+        <maml:description>
+          <maml:para>[System.String[]] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>The policy states that make up the Current world. Defaults to enabled alone, which is what the
+tenant enforces.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="4" aliases="none">
+        <maml:name>CandidateState</maml:name>
+        <maml:description>
+          <maml:para>[System.String[]] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>The policy states that make up the Projected world. Defaults to enabled plus
+enabledForReportingButNotEnforced, which is the promotion simulation.</maml:para>
+          <maml:para>Business Context: Overridable because the same fold answers a different question when the
+states are chosen differently - passing the same value as BaselineState turns the delta off and
+leaves you with a plain outcome, which is what you want when the response came from a tenant
+with no report-only policies at all.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>ScenarioName</maml:name>
+        <maml:description>
+          <maml:para>[System.String] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>A label for the sign-in this response describes, carried onto the output so a batch of outcomes
+stays readable. Something like 'jeff/office365/ios/noncompliant'.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+        <maml:name>SignInCondition</maml:name>
+        <maml:description>
+          <maml:para>[System.Object] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>The signInConditions object that was sent to the evaluate endpoint, if you still have it.
+Supplying it turns "this promotion adds a requirement" into "this promotion locks this persona
+out", by checking each requirement against the device state that was simulated.</maml:para>
+          <maml:para>Business Context: The API reports that a policy requiring a compliant device applies, whether
+or not the simulated device is compliant, so an outcome read from the response alone
+understates a lockout as a mild extra requirement.</maml:para>
+          <maml:para>Each rule rests on a documented Microsoft constraint: legacy authentication clients support
+neither MFA nor device state, device code flow cannot pass device state, approved client app is
+iOS and Android only, hybrid join is Windows only. What the request cannot decide - whether a
+user has registered a method or accepted terms of use
+- is reported as unknown rather than guessed at, because an invented lockout costs more than a
+  missed one.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="0" aliases="none">
+        <maml:name>WhatIfResult</maml:name>
+        <maml:description>
+          <maml:para>[System.Object] (Mandatory, Accepts Pipeline Input)</maml:para>
+          <maml:para>The What If response, in any shape it arrives in: a JSON string, the OData envelope with its
+value property, or the already-unwrapped collection of policy results.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>A What If response, bound to **-WhatIfResult** from the pipeline. Accepts the raw JSON string
+`Invoke-MgGraphRequest -OutputType Json` returns, the hashtable `-OutputType Hashtable`
+returns, a deserialized object, the `{ value = [...] }` envelope or the bare collection Maester
+hands back already unwrapped. A response fetched with `appliedPoliciesOnly = $true` is folded,
+but the projection is only as complete as the policies it contains.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>CaOutcome.Result</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One object per response. `Scenario` carries **-ScenarioName**. `Current` is the outcome the
+tenant enforces today and `Projected` the outcome after every report-only policy is promoted;
+each carries `Access` (`Granted`, `GrantedWithControls` or `Blocked`), `BlockedBy`,
+`RequiredControls`, `OptionalChoices`, `UnsatisfiableRequirements`, `AuthenticationStrengths`,
+`IsEffectivelyBlocked`, `SessionControls`, `SessionConflicts` and `AppliedPolicies`. `Delta`
+compares the two, with `HasChange`, `BecomesEffectivelyBlocked`, the added and removed
+controls, strengths and session controls, and a one-line `Summary`. `PolicyCount` is the number
+of policies in the response and `ReportOnlyApplying` the number of report-only policies that
+applied - when it is 0 the two worlds are identical by construction, not because the promotion
+is safe.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr Blog: https://www.techbyjeff.net LinkedIn:
+https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+The Conditional Access What If API is in beta and its shape may change. Everything this module
+reads from a response - state, policyApplies, grantControls, sessionControls - is documented
+for whatIfAnalysisResult, but a beta response is not a contract.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1: Folds a live evaluation into both worlds ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$response = Invoke-MgGraphRequest -Method POST -OutputType Json `
+    -Uri 'https://graph.microsoft.com/beta/identity/conditionalAccess/evaluate' -Body $body
+ConvertTo-CaOutcome -WhatIfResult $response
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One outcome object, with Current, Projected and Delta</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Milliseconds; the API call is the slow part</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Checking a single sign-in by hand</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2: Reports only what promoting the report-only policies would change ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$outcome = ConvertTo-CaOutcome -WhatIfResult $response -ScenarioName 'jeff/ios'
+if ($outcome.Delta.HasChange) { $outcome.Delta.Summary }
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: A sentence such as 'LOCKS OUT this sign-in; cannot satisfy GRANT - Compliant Windows
+Devices (compliantDevice)'</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Milliseconds</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Deciding whether a piloted policy is safe to switch on</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3: Runs a stored matrix of scenarios and keeps the ones a promotion changes ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Get-ChildItem .\fixtures\*.json | ForEach-Object {
+    ConvertTo-CaOutcome -WhatIfResult (Get-Content $_ -Raw) -ScenarioName $_.BaseName
+} |
+    Where-Object { $_.Delta.HasChange } |
+    Select-Object Scenario, @{n='Change';e={$_.Delta.Summary}}
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per scenario whose outcome changes</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Milliseconds per scenario</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The blast radius of a promotion, across every persona at once</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/fadwen/CaOutcome/blob/main/docs/CaOutcome/ConvertTo-CaOutcome.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Conditional Access What If -</maml:linkText>
+        <maml:uri>https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-evaluate?view=graph-rest-beta</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Invoke-CaScenarioMatrix</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Compare-CaBaseline</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Expand-CaScenario</command:name>
+      <maml:description>
+        <maml:para>Expands a matrix of personas, resources and conditions into the individual sign-ins to evaluate</maml:para>
+      </maml:description>
+      <command:verb>Expand</command:verb>
+      <command:noun>CaScenario</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Core Functionality:
+Takes a matrix definition - a set of personas, a set of resources and a set of sign-in
+conditions - and returns every combination of the three as a scenario ready to send to the What
+If endpoint.
+
+Business Value:
+Conditional Access is not a per-user question, it is a per-population one, and the interesting
+failures live in combinations nobody thought to check by hand: the contractor on an unmanaged
+Mac, the break glass account from an unusual country, the service desk on a mobile client.
+Writing those out one at a time is how they get skipped. Declaring the axes and multiplying
+them out is how they get covered.
+
+Keeping the definition as data rather than code matters more than it looks. A matrix in a psd1
+next to the tests can be reviewed, diffed and extended by someone who does not write
+PowerShell, and it is the same artefact whether it is driving an ad hoc check or a scheduled
+run.
+
+Use Cases:
+- Building the input for Invoke-CaScenarioMatrix
+- Reviewing what a run will actually cover before spending the API calls on it
+- Feeding a subset, by filtering the output, when only one persona is in question
+
+Dependencies:
+None. This is a pure expansion and touches nothing.
+
+Side Effects:
+None.
+
+Important:
+The count multiplies. Three personas, four resources and five conditions is sixty API calls,
+and the guard exists because that arithmetic is easy to get wrong by a factor of ten.
+MaxScenarioCount throws rather than truncating: a silently shortened matrix would report a
+clean run over a fraction of what was asked for.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Expand-CaScenario</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>Matrix</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>MaxScenarioCount</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">int</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Int32</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="0" aliases="none">
+        <maml:name>Matrix</maml:name>
+        <maml:description>
+          <maml:para>[System.Object] (Mandatory, Accepts Pipeline Input)</maml:para>
+          <maml:para>The matrix definition, a hashtable or object with Personas, Resources and Conditions.</maml:para>
+          <maml:para>Each Persona needs Name and UserId. Each Resource needs Name plus one of ApplicationId,
+UserAction or AuthenticationContext. Each Condition needs Name plus any of the signInConditions
+properties, written in PascalCase - DevicePlatform, ClientAppType, SignInRiskLevel,
+UserRiskLevel, InsiderRiskLevel, ServicePrincipalRiskLevel, AgentIdRiskLevel, Country,
+IpAddress, DeviceInfo, AuthenticationFlow.</maml:para>
+          <maml:para>Business Context: Unrecognised condition keys are passed through with their first letter
+lowercased rather than rejected, so a property Microsoft adds to signInConditions can be used
+the day it ships without waiting for this module to learn about it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>MaxScenarioCount</maml:name>
+        <maml:description>
+          <maml:para>[System.Int32] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>The most scenarios this matrix may expand to. Defaults to 250. Exceeding it throws.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Int32</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>A matrix definition, bound to **-Matrix** from the pipeline - a hashtable, an object, or the
+result of `Import-PowerShellDataFile` on a matrix held as a `.psd1`.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>CaOutcome.Scenario</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One object per persona, resource and condition combination. `Name` is
+`persona/resource/condition` and is what a baseline is keyed by, so it must be stable across
+runs. `PersonaName`, `UserId`, `ResourceName` and `ConditionName` identify the parts; exactly
+one of `ApplicationId`, `UserAction` or `AuthenticationContext` is set, naming the resource
+target; `Conditions` is a hashtable already shaped for the `signInConditions` property of an
+evaluate request. The objects pipe straight into **Invoke-CaScenarioMatrix**.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr Blog: https://www.techbyjeff.net LinkedIn:
+https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+Expansion is pure - it calls nothing and changes nothing - so it is safe to run just to see
+what a matrix covers.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1: Expands one persona against one resource under two device states ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$matrix = @{
+    Personas   = @(@{ Name = 'standard'; UserId = $userId })
+    Resources  = @(@{ Name = 'office365'
+                      ApplicationId = '00000003-0000-0ff1-ce00-000000000000' })
+    Conditions = @(
+        @{ Name = 'managed'; DevicePlatform = 'windows'; ClientAppType = 'browser'
+           DeviceInfo = @{ isCompliant = $true } }
+        @{ Name = 'unmanaged'; DevicePlatform = 'windows'; ClientAppType = 'browser'
+           DeviceInfo = @{ isCompliant = $false } })
+}
+Expand-CaScenario -Matrix $matrix
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: Two scenarios, named standard/office365/managed and standard/office365/unmanaged</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The smallest useful matrix - the same user, managed and not</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2: Reviews the coverage of a matrix held as data, without calling Graph ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix (Import-PowerShellDataFile .\ca-matrix.psd1) |
+    Select-Object Name
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per scenario the matrix describes</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Checking what a scheduled run covers, and what it quietly does not</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3: Runs one persona out of a large matrix ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix $matrix |
+    Where-Object PersonaName -eq 'breakglass' |
+    Invoke-CaScenarioMatrix
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: Outcomes for the break glass account alone</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant to expand; the API calls take the time</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Re-checking the account that matters most, without paying for the whole matrix</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/fadwen/CaOutcome/blob/main/docs/CaOutcome/Expand-CaScenario.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Invoke-CaScenarioMatrix</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Export-CaBaseline</command:name>
+      <maml:description>
+        <maml:para>Records a set of outcomes as a baseline that can be committed and compared against later</maml:para>
+      </maml:description>
+      <command:verb>Export</command:verb>
+      <command:noun>CaBaseline</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Core Functionality:
+Reduces outcomes to the stable subset a comparison needs and writes them as JSON, keyed by
+scenario name and ordered so that the only thing which changes between runs is the outcome
+itself.
+
+Business Value:
+This is the part that catches what configuration comparison cannot see. Microsoft365DSC and
+every policy-export tool watch the policy: they tell you when its JSON changes. But a
+Conditional Access outcome depends on far more than the policy document - group membership,
+role assignment, named locations, the compliance state of a device. Someone joins a group and a
+policy that already required a compliant device now applies to them. No policy changed. No
+configuration drifted. A user is nonetheless locked out on Monday who was not on Friday, and
+nothing in a config-drift tool will ever mention it.
+
+A committed baseline of outcomes catches exactly that class of change, because it records what
+the tenant does rather than what it is configured to do.
+
+Use Cases:
+- Committing an approved set of outcomes next to the matrix that produced it
+- Failing a scheduled run when any persona's experience changes
+- Recording the state before a migration, to prove afterwards what moved
+
+Dependencies:
+None.
+
+Side Effects:
+Writes the file at Path when one is given. Supports -WhatIf.
+
+Important:
+A baseline containing a failed scenario is refused unless -Force. A scenario that errored has
+no outcome, so recording it as absent would make the next comparison report it as removed - a
+change invented by a transient HTTP error, in the artefact whose whole value is that its
+changes are real.
+
+No timestamp is written. The file is meant to be committed, and a generated-on field would
+produce a diff on every run whether or not anything moved, which trains everyone to stop
+reading the diff. Git already records when the file changed and who changed it.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Export-CaBaseline</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>Outcome</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Force</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>WhatIf</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Confirm</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="cf">
+        <maml:name>Confirm</maml:name>
+        <maml:description>
+          <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>[System.Management.Automation.SwitchParameter] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>Write the baseline even though a scenario failed. The failed scenario is omitted from the file,
+so read the warning before using this on a run you intend to trust.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="0" aliases="none">
+        <maml:name>Outcome</maml:name>
+        <maml:description>
+          <maml:para>[System.Object[]] (Mandatory, Accepts Pipeline Input)</maml:para>
+          <maml:para>Outcomes from Invoke-CaScenarioMatrix or ConvertTo-CaOutcome. Each must carry a Scenario name,
+which is the key the baseline is stored under.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>[System.Management.Automation.SwitchParameter] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>Return the baseline object as well as writing it.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>[System.String] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>Where to write the JSON. Omit it and the baseline object is returned instead.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="wi">
+        <maml:name>WhatIf</maml:name>
+        <maml:description>
+          <maml:para>Runs the command in a mode that only reports what would happen without performing the actions.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Outcomes, bound to **-Outcome** from the pipeline - the output of **Invoke-CaScenarioMatrix**
+or **ConvertTo-CaOutcome**. Every outcome needs a unique `Scenario` name. An outcome marked
+`Failed` is refused unless **-Force** is given, and then left out of the baseline.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>CaOutcome.Baseline</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Returned when **-Path** is omitted, or with **-PassThru**. Carries `schemaVersion` and
+`scenarios`, an ordered map from scenario name to its `current` and `projected` outcome and its
+`reportOnlyApplying` count. The same shape is what is written to **-Path** as JSON. Nothing is
+returned when **-Path** is given without **-PassThru**.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr Blog: https://www.techbyjeff.net LinkedIn:
+https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+The baseline is deterministic - scenarios, controls and policies are sorted - so that a
+committed baseline diffs cleanly and a run that changed nothing rewrites it byte for byte.
+
+A baseline names users, groups, applications and policies from the tenant it was taken in.
+Commit it to the repository that holds that tenant's tests, not to a public one.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1: Records the current outcomes as the approved baseline ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix $matrix | Invoke-CaScenarioMatrix |
+    Export-CaBaseline -Path .\ca-baseline.json
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: None; the file is written</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant once the matrix has run</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The first run, once the outcomes have been reviewed and are considered correct</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2: Reports what would be written without writing it ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$outcomes | Export-CaBaseline -Path .\ca-baseline.json -WhatIf
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: The WhatIf message naming the file and the scenario count</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Checking the scenario count before overwriting an approved baseline</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3: Builds the baseline in memory, without a file ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$baseline = $outcomes | Export-CaBaseline
+$baseline.scenarios.Keys
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: The baseline object, and then its scenario names</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Comparing two runs against each other without committing either</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/fadwen/CaOutcome/blob/main/docs/CaOutcome/Export-CaBaseline.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Compare-CaBaseline</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Invoke-CaScenarioMatrix</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Invoke-CaScenarioMatrix</command:name>
+      <maml:description>
+        <maml:para>Evaluates a set of scenarios against the tenant and folds each response into an outcome</maml:para>
+      </maml:description>
+      <command:verb>Invoke</command:verb>
+      <command:noun>CaScenarioMatrix</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Core Functionality:
+Sends one What If evaluation per scenario, folds each response with ConvertTo-CaOutcome, and
+returns the outcomes. Throttling and transient failures are retried; a scenario that fails
+anyway is returned marked rather than dropped.
+
+Business Value:
+This is the step that turns a single what-if check into coverage. The question worth asking is
+never "what happens to this user" but "what happens to everybody, and what would promoting the
+pilot do to them", and answering it means evaluating a grid rather than a point.
+
+Failures are surfaced, not swallowed, because of what happens downstream. If a scenario that
+errored simply vanished from the output, a baseline written from that run would record it as
+absent and the next comparison would report it as removed - a real change, invented by a
+transient HTTP error. So a failed scenario comes back with Failed set, and Export-CaBaseline
+refuses to write a baseline containing one.
+
+Use Cases:
+- Running a stored matrix before promoting a report-only policy
+- Producing the input for Export-CaBaseline
+- A scheduled run whose output feeds Compare-CaBaseline
+
+Dependencies:
+- Microsoft.Graph.Authentication, for the default request handler, plus a connection with
+  Policy.Read.ConditionalAccess. Checked at run time - supply -RequestHandler and the module
+  needs neither.
+
+Side Effects:
+None in the tenant. Evaluation is a POST but changes nothing; it is a read that happens to need
+a request body.
+
+Important:
+One API call per scenario, serially. That is deliberate - the endpoint publishes no throttling
+limits, and a matrix run is exactly the traffic shape that finds an unpublished one. Use
+-DelayMillisecond to pace a large run.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Invoke-CaScenarioMatrix</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>Scenario</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>RequestHandler</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">scriptblock</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.ScriptBlock</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+          <maml:name>Uri</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="3" aliases="none">
+          <maml:name>MaxRetry</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">int</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Int32</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="4" aliases="none">
+          <maml:name>InitialBackoffSecond</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">int</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Int32</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="5" aliases="none">
+          <maml:name>DelayMillisecond</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">int</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Int32</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="5" aliases="none">
+        <maml:name>DelayMillisecond</maml:name>
+        <maml:description>
+          <maml:para>[System.Int32] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>A pause between scenarios. Zero by default; raise it to pace a large matrix rather than
+discovering the throttle.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Int32</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="4" aliases="none">
+        <maml:name>InitialBackoffSecond</maml:name>
+        <maml:description>
+          <maml:para>[System.Int32] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>First backoff in seconds, doubling per attempt. A Retry-After from the server wins.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Int32</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="3" aliases="none">
+        <maml:name>MaxRetry</maml:name>
+        <maml:description>
+          <maml:para>[System.Int32] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>Retries per scenario after a throttle or transient failure. Defaults to 4.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Int32</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>RequestHandler</maml:name>
+        <maml:description>
+          <maml:para>[System.Management.Automation.ScriptBlock] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>A scriptblock taking the request body and the URI and returning the raw response. Defaults to
+Invoke-MgGraphRequest.</maml:para>
+          <maml:para>Business Context: This is the seam that keeps the module dependency-free and testable without a
+tenant. It is also how you drive the call through an existing authenticated session, a proxy,
+or a recorded fixture.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Management.Automation.ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.ScriptBlock</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue)" position="0" aliases="none">
+        <maml:name>Scenario</maml:name>
+        <maml:description>
+          <maml:para>[System.Object[]] (Mandatory, Accepts Pipeline Input)</maml:para>
+          <maml:para>Scenarios from Expand-CaScenario.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+        <maml:name>Uri</maml:name>
+        <maml:description>
+          <maml:para>[System.String] (Optional, No Pipeline Support)</maml:para>
+          <maml:para>The evaluate endpoint, should a national cloud or a future version need a different one.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Scenarios, bound to **-Scenario** from the pipeline - normally the output of
+**Expand-CaScenario**, or any object carrying the same `Name`, `UserId`, resource target and
+`Conditions` properties.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>CaOutcome.Result</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One object per scenario: the **ConvertTo-CaOutcome** result with `Failed` and `Error` added. A
+scenario that fails after every retry is returned rather than dropped, with `Failed` set to
+`$true`, the message in `Error`, and `Current`, `Projected` and `Delta` null. It is also
+written to the error stream so an interactive run is not silent. **Export-CaBaseline** refuses
+a run containing a failure unless **-Force** is given, so a transient HTTP error cannot be
+recorded as a removed scenario.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr Blog: https://www.techbyjeff.net LinkedIn:
+https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+The default request handler needs Microsoft.Graph.Authentication and a connection with
+Policy.Read.ConditionalAccess, and is resolved at run time rather than declared as a module
+dependency. Supply **-RequestHandler** and neither is needed.
+
+Scenarios run serially, one API call each. The endpoint publishes no throttling limits, and a
+matrix run is the traffic shape that finds an unpublished one.
+
+The Conditional Access What If API is in beta and its shape may change. Everything this module
+reads from a response - state, policyApplies, grantControls, sessionControls - is documented
+for whatIfAnalysisResult, but a beta response is not a contract.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1: Runs every scenario in the matrix against the tenant ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix $matrix | Invoke-CaScenarioMatrix
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One outcome per scenario</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: About a second per scenario</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The whole grid, before promoting a report-only policy</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2: Paces a large run, then keeps only the personas a promotion would lock out ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$outcomes = Expand-CaScenario -Matrix $matrix |
+    Invoke-CaScenarioMatrix -DelayMillisecond 250
+$outcomes | Where-Object { $_.Delta.BecomesEffectivelyBlocked } |
+    Select-Object Scenario, @{n='Why';e={$_.Delta.Summary}}
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: One row per persona that stops getting in</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Scenario count times about 1.3 seconds</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: The blast radius question, answered before anything is enforced</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3: Replays recorded responses instead of calling Graph ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Expand-CaScenario -Matrix $matrix |
+    Invoke-CaScenarioMatrix -RequestHandler { param($b, $u) $recorded[$b.signInIdentity.userId] }
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Output: Outcomes folded from the recordings</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Duration: Instant</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Use case: Testing the matrix and the assertions over it without a tenant</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/fadwen/CaOutcome/blob/main/docs/CaOutcome/Invoke-CaScenarioMatrix.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Conditional Access What If -</maml:linkText>
+        <maml:uri>https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-evaluate?view=graph-rest-beta</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Expand-CaScenario</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>ConvertTo-CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Export-CaBaseline</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_CaOutcome</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+</helpItems>

@@ -1,0 +1,279 @@
+# Quality gates for CaOutcome.
+#
+# Four jobs, because the module makes claims that can only fail on different platforms:
+#
+#   tests     Windows, PowerShell 7. PSScriptAnalyzer, then the whole Pester suite shuffled,
+#             with an 80% coverage gate over Public/ and Private/. Every Graph call in the
+#             unit suite goes through -RequestHandler or replays a recorded fixture, so it
+#             reaches no tenant. The Tests/Integration suite skips itself unless the session
+#             is connected to Graph, which a runner never is.
+#
+#   desktop   Windows PowerShell 5.1. The manifest declares CompatiblePSEditions Desktop and
+#             the root module carries #Requires -Version 5.1. A ternary, a null-coalescing
+#             operator or a ForEach-Object -Parallel parses cleanly under 7 and breaks every
+#             command under 5.1, and nothing but a 5.1 host notices. The suite runs here too,
+#             because 5.1 also differs at run time: its ConvertFrom-Json has no -AsHashtable and
+#             hands back a top-level array as a single object, and the fold reads responses
+#             parsed either way.
+#
+#   linux     Ubuntu. RequiredModules is empty precisely so the module imports anywhere, and
+#             the fold is a pure transform. This runs the suite where there is no Windows
+#             PowerShell and a case-sensitive filesystem, so a fixture path assembled with the
+#             wrong case fails here rather than for a user.
+#
+#   help      Ubuntu. The command help gate: the PlatyPS Markdown under docs/ is valid and
+#             complete, the committed MAML in en-US/ was built from it, and Get-Help serves
+#             every command's full help on a case-sensitive filesystem - the only place the
+#             -Help.xml capital H can fail. Export-MamlCommandHelp produces 'CaOutcome-Help.xml'
+#             while most documentation writes '-help.xml'. On Windows that mismatch is
+#             invisible; on Linux the lookup silently fails and every command loses its help.
+
+name: 'Quality Gates'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+  # Callable so release.yml can run these exact gates before publishing. A tag can be pushed
+  # at any commit, including one that never passed a pull request, so the release re-runs the
+  # gates rather than trusting that they ran at some point.
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: 'Tests and analysis'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build modules
+        shell: pwsh
+        run: |
+          # Runners ship Pester 5.x. Pester 6 must be installed explicitly, and the version
+          # range keeps a future Pester 7 from silently changing the assertion surface. The
+          # floor is 6.1 to match the #Requires line every suite carries.
+          Install-PSResource -Name Pester -Version '[6.1.0,7.0.0)' -Scope CurrentUser -TrustRepository
+          Install-PSResource -Name PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+          $PSVersionTable | ConvertTo-Json -Depth 3
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $issues = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning
+          if ($issues) {
+              $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
+              throw "PSScriptAnalyzer reported $($issues.Count) issue(s)."
+          }
+          Write-Host 'PSScriptAnalyzer clean.'
+
+      - name: Pester with coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 6.1.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          # Shuffled, so a test that only passes because of what ran before it fails here rather
+          # than on somebody's machine. The seed is printed so a failing order can be replayed
+          # locally with $cfg.Run.ShuffleSeed.
+          $seed = Get-Random -Minimum 1 -Maximum 2147483647
+          $cfg.Run.Shuffle = $true
+          $cfg.Run.ShuffleSeed = $seed
+          Write-Host "Pester shuffle seed: $seed"
+
+          $cfg.CodeCoverage.Enabled = $true
+          $cfg.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1'
+          # CoveragePercentTarget only reports; the gate below is what enforces it.
+          $cfg.CodeCoverage.CoveragePercentTarget = 80
+
+          $result = Invoke-Pester -Configuration $cfg
+
+          # A file that fails discovery contributes nothing to FailedCount, so both are checked.
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw ("$($result.FailedCount) test(s) and $($result.FailedContainersCount) " +
+                  "container(s) failed under shuffle seed $seed.")
+          }
+
+          $coverage = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
+          Write-Host "Code coverage: $coverage%"
+          if ($coverage -lt 80) {
+              throw "Code coverage $coverage% is below the 80% gate."
+          }
+
+  desktop:
+    name: 'Windows PowerShell 5.1'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 'powershell' here is Windows PowerShell 5.1, not pwsh. Import, count the exports
+      # against the manifest, and confirm every command serves its compiled help: each export
+      # carries .EXTERNALHELP, so there is no comment block to fall back on and a description
+      # proves 5.1 read en-US/CaOutcome-Help.xml. A 7-only construct anywhere in the module
+      # fails the import itself, which is the failure this job exists to surface.
+      - name: Import and verify exports
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))" | Write-Host
+
+          Import-Module ./CaOutcome.psd1 -Force
+          $declared = @((Import-PowerShellDataFile ./CaOutcome.psd1).FunctionsToExport) | Sort-Object
+          $actual = @((Get-Module CaOutcome).ExportedFunctions.Keys) | Sort-Object
+
+          if (($declared -join ',') -ne ($actual -join ',')) {
+              throw "Exports differ from the manifest. Declared: $($declared.Count); actual: $($actual.Count)."
+          }
+
+          $noHelp = @(foreach ($name in $actual) {
+              if (-not (Get-Help $name -ErrorAction SilentlyContinue).Description) { $name }
+          })
+          if ($noHelp) { throw "Commands serving no help under 5.1: $($noHelp -join ', ')" }
+          Write-Host "All $($actual.Count) commands exported with help under Windows PowerShell 5.1."
+
+      # Pester 6 declares PowerShellVersion 5.1 and runs the suite unchanged.
+      - name: Install Pester
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module -Name Pester -RequiredVersion 6.1.0 -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
+          Import-Module Pester -RequiredVersion 6.1.0
+          "Pester $((Get-Module Pester).Version) on PowerShell $($PSVersionTable.PSVersion)" | Write-Host
+
+      - name: Pester under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -RequiredVersion 6.1.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          $seed = Get-Random -Minimum 1 -Maximum 2147483647
+          $cfg.Run.Shuffle = $true
+          $cfg.Run.ShuffleSeed = $seed
+          Write-Host "Pester shuffle seed: $seed"
+          $result = Invoke-Pester -Configuration $cfg
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw "$($result.FailedCount) test(s) failed under Windows PowerShell 5.1, shuffle seed $seed."
+          }
+
+  linux:
+    name: 'Tests on Linux'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-PSResource -Name Pester -Version '[6.1.0,7.0.0)' -Scope CurrentUser -TrustRepository
+          "PowerShell $($PSVersionTable.PSVersion) on $($PSVersionTable.OS)" | Write-Host
+
+      - name: Pester
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 6.1.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Normal'
+          $seed = Get-Random -Minimum 1 -Maximum 2147483647
+          $cfg.Run.Shuffle = $true
+          $cfg.Run.ShuffleSeed = $seed
+          Write-Host "Pester shuffle seed: $seed"
+          $result = Invoke-Pester -Configuration $cfg
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw "$($result.FailedCount) test(s) failed on Linux, shuffle seed $seed."
+          }
+
+  help:
+    name: 'Command help'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Pinned exactly, not by minimum. The staleness check below compares a rebuilt MAML
+      # against the committed one byte for byte, so a PlatyPS release that changes the
+      # emitted XML at all would fail the build for a reason nobody changed. Bump this
+      # deliberately, rebuild, and commit the result in the same change.
+      - name: Install PlatyPS
+        shell: pwsh
+        run: |
+          Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Version '1.0.3' -Scope CurrentUser -TrustRepository
+          $PSVersionTable | ConvertTo-Json -Depth 3
+
+      # Structure, unfilled templates, relative RELATED LINKS, drift against the exported
+      # command list, and an exported function that has lost its .EXTERNALHELP keyword.
+      - name: Validate help Markdown
+        shell: pwsh
+        run: ./Build/Build-Help.ps1 -ValidateOnly
+
+      # Rebuild from the committed Markdown and compare against the committed MAML. If they
+      # differ, someone edited docs/ without running the build - and .EXTERNALHELP means
+      # users would be served the stale content rather than falling back to anything correct.
+      - name: Fail on stale committed MAML
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $committed = './en-US/CaOutcome-Help.xml'
+          if (-not (Test-Path $committed)) { throw "No committed help at $committed." }
+          $before = (Get-FileHash $committed -Algorithm SHA256).Hash
+
+          ./Build/Build-Help.ps1 | Out-Null
+
+          $after = (Get-FileHash $committed -Algorithm SHA256).Hash
+          if ($before -ne $after) {
+              throw 'en-US/CaOutcome-Help.xml is out of date. Run ./Build/Build-Help.ps1 and commit the result.'
+          }
+          Write-Host 'Committed MAML matches the Markdown.'
+
+      # Get-Help resolves .EXTERNALHELP against the culture folder by exact filename, so a
+      # casing mismatch fails here and only here.
+      - name: Verify Get-Help on a case-sensitive filesystem
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./CaOutcome.psd1 -Force
+
+          $failed = @()
+          foreach ($command in (Get-Module CaOutcome).ExportedFunctions.Keys | Sort-Object) {
+              $help = Get-Help $command -Full
+
+              # An autogenerated stub is the symptom of MAML that was not found: PowerShell
+              # falls back to reflected syntax with no description and no examples.
+              if (-not $help.Description) { $failed += "$command : no description" ; continue }
+              if (@($help.Examples.Example).Count -lt 3) { $failed += "$command : fewer than 3 examples" ; continue }
+              if (-not $help.parameters.parameter) { $failed += "$command : no parameter help" ; continue }
+
+              Write-Host ("{0,-26} {1} examples, {2} parameters" -f
+                  $command, @($help.Examples.Example).Count, @($help.parameters.parameter).Count)
+          }
+
+          if (-not (Get-Help about_CaOutcome -ErrorAction SilentlyContinue)) {
+              $failed += 'about_CaOutcome : topic not found'
+          }
+
+          if ($failed) {
+              $failed | ForEach-Object { Write-Host "FAILED: $_" }
+              throw 'MAML help was not served on a case-sensitive filesystem.'
+          }
+          Write-Host 'All commands served full help from MAML.'
