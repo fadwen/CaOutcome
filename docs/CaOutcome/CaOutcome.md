@@ -14,7 +14,7 @@ title: CaOutcome Module
 
 ## Description
 
-Folds a Conditional Access What If response into an effective outcome and diffs a promotion
+Predicts Entra Conditional Access sign-in outcomes before report-only policies go live
 
 ## CaOutcome
 

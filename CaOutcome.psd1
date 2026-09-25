@@ -8,7 +8,7 @@
     Copyright = '(c) 2026 Jeffrey Stuhr. All rights reserved.'
     # Kept to one line for the repository's 115-character limit. The README carries the
     # full explanation of what "promotion" means here.
-    Description = 'Folds a Conditional Access What If response into an effective outcome and diffs a promotion'
+    Description = 'Predicts Entra Conditional Access sign-in outcomes before report-only policies go live'
 
     # PowerShell Version Requirements
     PowerShellVersion = '5.1'
@@ -44,8 +44,9 @@
     PrivateData = @{
         PSData = @{
             Tags = @(
-                'Entra', 'EntraID', 'AzureAD', 'ConditionalAccess', 'WhatIf', 'Maester',
-                'MicrosoftGraph', 'Identity', 'Security', 'Baseline', 'Drift',
+                'Entra', 'EntraID', 'MicrosoftEntra', 'AzureAD', 'ConditionalAccess', 'WhatIf',
+                'ReportOnly', 'MFA', 'ZeroTrust', 'Maester', 'MicrosoftGraph', 'Identity',
+                'Security', 'Baseline', 'Drift',
                 'PSEdition_Desktop', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS'
             )
             LicenseUri = 'https://github.com/fadwen/CaOutcome/blob/main/LICENSE'
