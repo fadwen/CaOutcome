@@ -1,6 +1,7 @@
 # CaOutcome
 
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/CaOutcome?style=flat-square&logo=powershell&label=Gallery)](https://www.powershellgallery.com/packages/CaOutcome)
+[![Gallery downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffadwen%2FCaOutcome%2Fbadges%2Fdownloads.json&style=flat-square)](https://www.powershellgallery.com/packages/CaOutcome)
 [![Quality Gates](https://img.shields.io/github/actions/workflow/status/fadwen/CaOutcome/quality-gates.yml?branch=main&style=flat-square&label=quality%20gates)](https://github.com/fadwen/CaOutcome/actions/workflows/quality-gates.yml)
 [![PowerShell 5.1](https://img.shields.io/badge/PowerShell-5.1+-blue?style=flat-square&logo=powershell)](https://github.com/PowerShell/PowerShell)
 [![Pester](https://img.shields.io/badge/Tested_with-Pester_6-green?style=flat-square)](https://pester.dev)
