@@ -29,35 +29,43 @@ function ConvertTo-CaOutcome {
         [string[]]$CandidateState = $script:ProjectedStates
     )
 
-    process {
-        $policies = ConvertFrom-CaWhatIfResponse -InputObject $WhatIfResult
+    begin {
+        # Maester's Test-MtConditionalAccessWhatIf returns the policy results unwrapped, so piped
+        # into this command they arrive one policy at a time. Folding each on its own would give
+        # one outcome per policy, every one of them wrong, so a lone policy result is held back
+        # and the lot folded together in end. Anything that is a whole response - an envelope,
+        # a JSON string, a collection - still folds as it arrives, one outcome per response.
+        $loosePolicies = [System.Collections.Generic.List[object]]::new()
 
-        if ($policies.Count -eq 0) {
-            Write-Warning 'The What If response contained no policy results. Nothing to fold.'
+        $foldParameters = @{
+            ScenarioName    = $ScenarioName
+            SignInCondition = $SignInCondition
+            BaselineState   = $BaselineState
+            CandidateState  = $CandidateState
+        }
+    }
+
+    process {
+        $isLonePolicy = $null -ne $WhatIfResult -and $WhatIfResult -isnot [string] -and
+            ($WhatIfResult -is [hashtable] -or $WhatIfResult -isnot [System.Collections.IEnumerable])
+        if ($isLonePolicy) {
+            if ($WhatIfResult -is [hashtable]) {
+                $isLonePolicy = -not $WhatIfResult.ContainsKey('value')
+            } else {
+                $isLonePolicy = -not $WhatIfResult.PSObject.Properties['value']
+            }
         }
 
-        $current = Get-CaEffectiveControl -Policy $policies -State $BaselineState -World 'Current' `
-            -SignInCondition $SignInCondition
-        $projected = Get-CaEffectiveControl -Policy $policies -State $CandidateState -World 'Projected' `
-            -SignInCondition $SignInCondition
-        $delta = Compare-CaEffectiveControl -From $current -To $projected
+        if ($isLonePolicy) {
+            $loosePolicies.Add($WhatIfResult)
+        } else {
+            Get-CaFoldedOutcome -Response $WhatIfResult @foldParameters
+        }
+    }
 
-        # Surfaced on its own because it is the number that decides whether the projection means
-        # anything: no applying report-only policy and the two worlds are identical by
-        # construction, not because the promotion is safe.
-        $reportOnlyApplying = @($policies | Where-Object {
-            (Get-CaProperty -InputObject $_ -Name 'policyApplies') -eq $true -and
-            (Get-CaProperty -InputObject $_ -Name 'state') -eq 'enabledForReportingButNotEnforced'
-        }).Count
-
-        [PSCustomObject]@{
-            PSTypeName         = 'CaOutcome.Result'
-            Scenario           = $ScenarioName
-            Current            = $current
-            Projected          = $projected
-            Delta              = $delta
-            PolicyCount        = $policies.Count
-            ReportOnlyApplying = $reportOnlyApplying
+    end {
+        if ($loosePolicies.Count -gt 0) {
+            Get-CaFoldedOutcome -Response $loosePolicies.ToArray() @foldParameters
         }
     }
 }

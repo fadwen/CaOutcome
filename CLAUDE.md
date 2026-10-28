@@ -84,8 +84,11 @@ development came from a shape the API returned, not one anybody imagined.
 
 ### The Maester template stays a `.template`
 
-`Examples/ContosoCaOutcome.Tests.ps1.template` uses Pester 5 assertions because that is what
-Maester runs, and needs a connected tenant. The extension keeps it out of `Invoke-Pester ./Tests`
+`Examples/ContosoCaOutcome.Tests.ps1.template` is a Pester-format Maester custom test using the
+`Should -Be` assertion form, and needs a connected tenant. It runs unchanged under Maester 2.x and
+3.0. Its `#Requires` asks for Pester 5.5.0, the floor Maester 2.x accepts; raising it shuts out
+2.x users for nothing, because Maester 3.0 - which no longer installs Pester - enforces its own
+5.7.1 floor with a warning before the file is ever loaded. The extension keeps it out of `Invoke-Pester ./Tests`
 and out of PSScriptAnalyzer.
 
 ### The MAML filename carries a capital H
@@ -143,7 +146,7 @@ secret named `PSGallery-ApiKey`.
 ## Checks
 
 ```powershell
-Invoke-Pester ./Tests                   # 204 pass, 6 skip without a Graph connection
+Invoke-Pester ./Tests                   # 206 pass, 6 skip without a Graph connection
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning
 ./Build/Build-Help.ps1                  # rebuild MAML after editing docs/
 ./Build/Publish-Module.ps1 -WhatIf      # full release rehearsal, publishes nothing

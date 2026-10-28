@@ -317,10 +317,19 @@ glass account survives both worlds, and — the one that stops the others passin
 vacuously — that a report-only policy applied to at least one persona in the
 first place.
 
+It is a Pester-format test and runs the same under Maester 2.x and 3.0.
+**Maester 3.0 no longer installs Pester**, though, and without Pester 5.7.1 or
+later it leaves the file out of the run with a warning rather than failing it.
+Install Pester wherever Maester runs:
+
+```powershell
+Install-PSResource Pester -Version '[5.7.1,)' -TrustRepository
+```
+
 The `.template` extension keeps this repository's own test run from picking it
-up: its assertions use the Pester 5 form, because that is what Maester runs, and
-it needs a connected tenant. Installed from the Gallery, the template is in the
-module's `Examples` folder:
+up: its assertions use the `Should -Be` form, which this repository's suite
+disables, and it needs a connected tenant. Installed from the Gallery, the
+template is in the module's `Examples` folder:
 
 ```powershell
 Join-Path (Get-Module CaOutcome -ListAvailable)[0].ModuleBase 'Examples'

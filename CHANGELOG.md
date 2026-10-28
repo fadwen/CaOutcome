@@ -13,6 +13,25 @@ All notable changes to this module are recorded here. Format follows
   this module). `.github/workflows/gallery-downloads.yml` calls the reusable workflow in
   fadwen/IntuneScriptLab daily and publishes the figure to a `badges` branch when it changes.
 
+### Changed
+
+- The Maester custom test template is verified against Maester 3.0.0-rc26 as well as 2.3.0 and
+  needs no code change: 3.0 still runs Pester-format tests from a `Custom` folder, reads the
+  `CAO.` test ids, and fills the Severity column from `Add-MtTestResultDetail`. Its `#Requires`
+  now asks for Pester 5.5.0, the floor Maester 2.x accepts. Maester 3.0 no longer installs
+  Pester and needs 5.7.1 or later; without it, 3.0 skips the file with a warning rather than
+  failing, so the template and README now say to install it.
+
+### Fixed
+
+- `Test-MtConditionalAccessWhatIf -AllResults | ConvertTo-CaOutcome`, the Maester usage the
+  README shows, produced one outcome per policy instead of one for the sign-in. Maester returns
+  the policy results as an array, which PowerShell unrolls onto the pipeline, so each policy
+  was folded on its own and every outcome was wrong. A policy result piped in on its own is now
+  collected and the set folded once at the end. A whole response piped in - an OData envelope,
+  a JSON string or a collection - still produces one outcome per response, as before. Affects
+  Maester 2.x and 3.0 alike.
+
 ## [0.6.0] - 2026-09-25
 
 The first release from this repository, and the first published to the PowerShell Gallery.

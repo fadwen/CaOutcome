@@ -288,6 +288,22 @@ Describe 'ConvertTo-CaOutcome input handling' -Tag 'Unit', 'Public' {
             Should-BeCollection $script:Expected
     }
 
+    It 'folds an unwrapped collection piped in as one response, as Maester pipes it' {
+        # Test-MtConditionalAccessWhatIf returns the array, which PowerShell unrolls, so every
+        # policy result arrives on its own. One outcome per policy would be silently wrong.
+        $outcome = @($script:Fixture.whatIf.value | ConvertTo-CaOutcome)
+
+        $outcome.Count | Should-Be 1
+        $outcome[0].PolicyCount | Should-Be @($script:Fixture.whatIf.value).Count
+        $outcome[0].Current.RequiredControls | Should-BeCollection $script:Expected
+    }
+
+    It 'still folds each whole response piped in on its own' {
+        $outcome = @($script:Fixture.whatIf, $script:Fixture.whatIf | ConvertTo-CaOutcome)
+
+        $outcome.Count | Should-Be 2
+    }
+
     It 'warns rather than throwing on an empty response' {
         $warnings = @()
         $outcome = ConvertTo-CaOutcome -WhatIfResult @() -WarningVariable warnings -WarningAction SilentlyContinue
