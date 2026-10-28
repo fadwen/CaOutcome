@@ -48,6 +48,8 @@ function ConvertTo-CaOutcome {
     process {
         $isLonePolicy = $null -ne $WhatIfResult -and $WhatIfResult -isnot [string] -and
             ($WhatIfResult -is [hashtable] -or $WhatIfResult -isnot [System.Collections.IEnumerable])
+        # The OData envelope is also a single non-enumerable object, so it is told apart from a
+        # policy result by its value property; a policy result never carries one.
         if ($isLonePolicy) {
             if ($WhatIfResult -is [hashtable]) {
                 $isLonePolicy = -not $WhatIfResult.ContainsKey('value')
