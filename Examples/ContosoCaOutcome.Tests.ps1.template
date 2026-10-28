@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.5.0' }
 
 <#
     A Maester custom test built on CaOutcome.
@@ -8,10 +8,22 @@
     the rest. Findings land in the existing Maester HTML report and GitHub Action - no fork,
     and no separate reporting to maintain.
 
+    This is a Pester-format test. It runs the same under Maester 2.x and 3.0, with one
+    difference in what each needs installed: Maester 2.x depends on Pester and accepts 5.5.0 or
+    later, while Maester 3.0 no longer installs Pester with itself and needs 5.7.1 or later.
+    Without that, 3.0 warns and leaves the file out of the run rather than failing it, so
+    install Pester where Maester runs:
+
+        Install-PSResource Pester -Version '[5.7.1,)' -TrustRepository
+
+    The #Requires line above asks for the lowest version any supported Maester accepts, so the
+    file still loads under 2.x; Maester 3.0 enforces its own floor. The assertions below are the
+    'Should -Be' form, which both Pester 5 and Pester 6 accept.
+
     The .template extension is why this file is not itself run by this repository's CI, which
-    executes every *.Tests.ps1 it can find with Should.DisableV5 set. These assertions are the
-    Pester 5 form, because that is what Maester runs, and they would fail that gate for a
-    reason that says nothing about whether the tests are correct.
+    executes every *.Tests.ps1 it can find with Should.DisableV5 set. These assertions would
+    fail that gate for a reason that says nothing about whether the tests are correct, and the
+    file needs a connected tenant besides.
 
     Two Maester conventions are followed here, both learned by running it rather than from the
     documentation. Test names are "ID: Title" - Maester warns on every name without one and

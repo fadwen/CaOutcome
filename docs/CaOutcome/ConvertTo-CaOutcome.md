@@ -271,6 +271,12 @@ returns, a deserialized object, the `{ value = [...] }` envelope or the bare col
 hands back already unwrapped. A response fetched with `appliedPoliciesOnly = $true` is folded,
 but the projection is only as complete as the policies it contains.
 
+PowerShell unrolls a bare collection onto the pipeline, so `Test-MtConditionalAccessWhatIf |
+ConvertTo-CaOutcome` delivers one policy result at a time. Those are collected and folded
+together into a single outcome once the pipeline ends, rather than one outcome per policy. A
+whole response - an envelope, a JSON string, or a collection passed by parameter - is folded as
+it arrives, so piping several responses still yields one outcome each.
+
 ## OUTPUTS
 
 ### CaOutcome.Result
