@@ -1,7 +1,7 @@
 @{
     # Module manifest for CaOutcome
     RootModule = 'CaOutcome.psm1'
-    ModuleVersion = '0.6.0'
+    ModuleVersion = '0.6.1'
     GUID = '4c1e8a76-9b23-4f5d-8e10-6d7a2f3b95c8'
     Author = 'Jeffrey Stuhr'
     CompanyName = 'Jeffrey Stuhr'
@@ -57,12 +57,16 @@
             # with 'IconUrl cannot be empty', so Publish-PSResource fails before it ever
             # reaches the Gallery. The same applies to HelpInfoURI below.
             ReleaseNotes = @'
-0.6.0 - First release from its own repository, and first on the PowerShell Gallery.
+0.6.1 - Fixes the Maester pipeline, and notes what Maester 3.0 needs.
 
-Command help is now compiled MAML built from PlatyPS Markdown, and every command carries
-[OutputType()] naming the type it actually returns - CaOutcome.Result, CaOutcome.Scenario,
-CaOutcome.Baseline or CaOutcome.Drift - so tab completion works on the output. No change to
-what any command does.
+Test-MtConditionalAccessWhatIf -AllResults | ConvertTo-CaOutcome produced one outcome per
+policy instead of one for the sign-in, because PowerShell unrolls Maester's unwrapped
+collection onto the pipeline and each policy result was folded on its own. Policy results
+piped in one at a time are now collected and folded together once. Passing a whole response
+by parameter, or piping an envelope or JSON string, was never affected.
+
+The custom test template runs unchanged under Maester 2.x and 3.0. Maester 3.0 no longer
+installs Pester and needs 5.7.1 or later; without it the template is skipped with a warning.
 
 See CHANGELOG.md for the detail.
 '@
