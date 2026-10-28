@@ -6,6 +6,8 @@ All notable changes to this module are recorded here. Format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-28
+
 ### Added
 
 - A Gallery downloads badge in the README that sums the per-version download counts, because
@@ -105,5 +107,6 @@ Nothing any command does has changed.
 
 - Effective control folding, the promotion diff, and satisfiability (`ConvertTo-CaOutcome`).
 
-[Unreleased]: https://github.com/fadwen/CaOutcome/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/fadwen/CaOutcome/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/fadwen/CaOutcome/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/fadwen/CaOutcome/releases/tag/v0.6.0
