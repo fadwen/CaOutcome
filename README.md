@@ -385,6 +385,11 @@ browser on the same sign-in.
   personas worth checking; a population left out of the matrix is a population
   no assertion covers, and the run still reports green.
 
+## Blog posts
+
+- [Conditional Access: Outcomes, Not Verdicts](https://www.techbyjeff.net/conditional-access-outcomes-not-verdicts/)
+- [Your Function Accepts an Array. Piping One Is Different](https://www.techbyjeff.net/piping-an-array-is-a-different-function/)
+
 ## Contributing
 
 Command help is written in PlatyPS Markdown under [`docs/CaOutcome`](./docs/CaOutcome)
